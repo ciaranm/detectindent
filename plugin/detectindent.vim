@@ -19,6 +19,11 @@
 "
 " Requirements:  Untested on Vim versions below 6.2
 
+if exists("loaded_detectindent")
+    finish
+endif
+let loaded_detectindent = 1
+
 fun! <SID>IsCommentStart(line)
     " &comments isn't reliable
     if &ft == "c" || &ft == "cpp"
