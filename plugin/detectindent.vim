@@ -51,8 +51,8 @@ fun! <SID>DetectIndent()
         " settings in c/c++ files especially
         if <SID>IsCommentStart(l:line)
             while l:idx <= l:idx_end && ! <SID>IsCommentEnd(l:line)
-                let l:line = getline(l:idx)
                 let l:idx = l:idx + 1
+                let l:line = getline(l:idx)
             endwhile
             let l:idx = l:idx + 1
             continue
