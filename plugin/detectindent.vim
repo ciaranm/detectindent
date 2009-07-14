@@ -58,6 +58,13 @@ fun! <SID>DetectIndent()
             continue
         endif
 
+        " Skip lines that are solely whitespace, since they're less likely to
+        " be properly constructed.
+        if l:line !~ '\S'
+            let l:idx = l:idx + 1
+            continue
+        endif
+
         let l:leading_char = strpart(l:line, 0, 1)
 
         if l:leading_char == "\t"
