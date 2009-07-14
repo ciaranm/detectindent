@@ -93,7 +93,7 @@ fun! <SID>DetectIndent()
     if l:has_leading_tabs && ! l:has_leading_spaces
         " tabs only, no spaces
         set noexpandtab
-        if exists("g:detectindent_preferred_tabsize")
+        if exists("g:detectindent_preferred_indent")
             let &shiftwidth  = g:detectindent_preferred_indent
             let &tabstop     = g:detectindent_preferred_indent
         endif
@@ -119,7 +119,7 @@ fun! <SID>DetectIndent()
 
     else
         " no spaces, no tabs
-        if exists("g:detectindent_preferred_tabsize")
+        if exists("g:detectindent_preferred_indent")
             let &shiftwidth  = g:detectindent_preferred_indent
             let &tabstop     = g:detectindent_preferred_indent
         endif
