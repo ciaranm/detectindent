@@ -97,47 +97,47 @@ fun! <SID>DetectIndent()
 
     if l:has_leading_tabs && ! l:has_leading_spaces
         " tabs only, no spaces
-        set noexpandtab
+        setl noexpandtab
         if exists("g:detectindent_preferred_indent")
-            let &shiftwidth  = g:detectindent_preferred_indent
-            let &tabstop     = g:detectindent_preferred_indent
+            let &l:shiftwidth  = g:detectindent_preferred_indent
+            let &l:tabstop     = g:detectindent_preferred_indent
         endif
 
     elseif l:has_leading_spaces && ! l:has_leading_tabs
         " spaces only, no tabs
-        set expandtab
-        let &shiftwidth  = l:shortest_leading_spaces_run
-        let &softtabstop = l:shortest_leading_spaces_run
+        setl expandtab
+        let &l:shiftwidth  = l:shortest_leading_spaces_run
+        let &l:softtabstop = l:shortest_leading_spaces_run
 
     elseif l:has_leading_spaces && l:has_leading_tabs
         " spaces and tabs
-        set noexpandtab
-        let &shiftwidth = l:shortest_leading_spaces_run
+        setl noexpandtab
+        let &l:shiftwidth = l:shortest_leading_spaces_run
 
         " mmmm, time to guess how big tabs are
         if l:longest_leading_spaces_run < 2
-            let &tabstop = 2
+            let &l:tabstop = 2
         elseif l:longest_leading_spaces_run < 4
-            let &tabstop = 4
+            let &l:tabstop = 4
         else
-            let &tabstop = 8
+            let &l:tabstop = 8
         endif
 
     else
         " no spaces, no tabs
         if exists("g:detectindent_preferred_indent") &&
                     \ exists("g:detectindent_preferred_expandtab")
-            set expandtab
-            let &shiftwidth  = g:detectindent_preferred_indent
-            let &softtabstop = g:detectindent_preferred_indent
+            setl expandtab
+            let &l:shiftwidth  = g:detectindent_preferred_indent
+            let &l:softtabstop = g:detectindent_preferred_indent
         elseif exists("g:detectindent_preferred_indent")
-            set noexpandtab
-            let &shiftwidth  = g:detectindent_preferred_indent
-            let &tabstop     = g:detectindent_preferred_indent
+            setl noexpandtab
+            let &l:shiftwidth  = g:detectindent_preferred_indent
+            let &l:tabstop     = g:detectindent_preferred_indent
         elseif exists("g:detectindent_preferred_expandtab")
-            set expandtab
+            setl expandtab
         else
-            set noexpandtab
+            setl noexpandtab
         endif
 
     endif
