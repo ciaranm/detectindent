@@ -30,6 +30,10 @@ Author:  Ciaran McCreesh <ciaran.mccreesh at googlemail.com>
 		:let g:detectindent_preferred_indent = 4
 <       in your |vimrc| file.
 
+	To set limit for number of lines that will be analysed set: >
+		:let g:detectindent_max_lines_to_analyse = 1024
+<	in your |vimrc| file.
+
 ==============================================================================
 3. DetectIndent ChangeLog			      *detectindent-changelog*
 

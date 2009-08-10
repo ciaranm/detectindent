@@ -46,6 +46,10 @@ fun! <SID>DetectIndent()
     let l:has_leading_spaces          = 0
     let l:shortest_leading_spaces_run = 0
     let l:longest_leading_spaces_run  = 0
+    let l:max_lines                   = 1024
+    if exists("g:detectindent_max_lines_to_analyse")
+      let l:max_lines = g:detectindent_max_lines_to_analyse
+    endif
 
     let l:idx_end = line("$")
     let l:idx = 1
@@ -93,6 +97,13 @@ fun! <SID>DetectIndent()
         endif
 
         let l:idx = l:idx + 1
+
+        let l:max_lines = l:max_lines - 1
+
+        if l:max_lines == 0
+            let l:idx = l:idx_end + 1
+        endif
+
     endwhile
 
     if l:has_leading_tabs && ! l:has_leading_spaces
