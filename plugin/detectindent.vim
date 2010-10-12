@@ -25,8 +25,8 @@ endif
 let loaded_detectindent = 1
 
 fun! <SID>IsCommentStart(line)
-    " &comments isn't reliable
-    if &ft == "c" || &ft == "cpp"
+    " &comments aren't reliable
+    if &ft == "c" || &ft == "cpp" || &ft == "javascript"
         return -1 != match(a:line, '/\*')
     else
         return 0
@@ -34,7 +34,7 @@ fun! <SID>IsCommentStart(line)
 endfun
 
 fun! <SID>IsCommentEnd(line)
-    if &ft == "c" || &ft == "cpp"
+    if &ft == "c" || &ft == "cpp" || &ft == "javascript"
         return -1 != match(a:line, '\*/')
     else
         return 0
