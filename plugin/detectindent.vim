@@ -24,6 +24,10 @@ if exists("loaded_detectindent")
 endif
 let loaded_detectindent = 1
 
+if !exists('g:detectindent_verbosity')
+    let g:detectindent_verbosity = 1
+endif
+
 fun! <SID>IsCommentStart(line)
     " &comments aren't reliable
     if &ft == "c" || &ft == "cpp" || &ft == "javascript"
@@ -108,6 +112,7 @@ fun! <SID>DetectIndent()
 
     if l:has_leading_tabs && ! l:has_leading_spaces
         " tabs only, no spaces
+        if &verbose >= g:detectindent_verbosity | echo "Detected tabs only, no spaces" | endif
         setl noexpandtab
         if exists("g:detectindent_preferred_indent")
             let &l:shiftwidth  = g:detectindent_preferred_indent
@@ -116,12 +121,14 @@ fun! <SID>DetectIndent()
 
     elseif l:has_leading_spaces && ! l:has_leading_tabs
         " spaces only, no tabs
+        if &verbose >= g:detectindent_verbosity | echo "Detected spaces only, no tabs" | endif
         setl expandtab
         let &l:shiftwidth  = l:shortest_leading_spaces_run
         let &l:softtabstop = l:shortest_leading_spaces_run
 
     elseif l:has_leading_spaces && l:has_leading_tabs
         " spaces and tabs
+        if &verbose >= g:detectindent_verbosity | echo "Detected spaces and tabs" | endif
         setl noexpandtab
         let &l:shiftwidth = l:shortest_leading_spaces_run
 
@@ -136,6 +143,7 @@ fun! <SID>DetectIndent()
 
     else
         " no spaces, no tabs
+        if &verbose >= g:detectindent_verbosity | echo "Detected no spaces, no spaces" | endif
         if exists("g:detectindent_preferred_indent") &&
                     \ exists("g:detectindent_preferred_expandtab")
             setl expandtab
