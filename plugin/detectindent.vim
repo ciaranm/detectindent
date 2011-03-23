@@ -30,7 +30,7 @@ endif
 
 fun! <SID>IsCommentStart(line)
     " &comments aren't reliable
-    if &ft == "c" || &ft == "cpp" || &ft == "javascript"
+    if index(["c", "cpp", "javascript", "php"], &ft) != -1
         return -1 != match(a:line, '/\*')
     else
         return 0
@@ -38,7 +38,7 @@ fun! <SID>IsCommentStart(line)
 endfun
 
 fun! <SID>IsCommentEnd(line)
-    if &ft == "c" || &ft == "cpp" || &ft == "javascript"
+    if index(["c", "cpp", "javascript", "php"], &ft) != -1
         return -1 != match(a:line, '\*/')
     else
         return 0
