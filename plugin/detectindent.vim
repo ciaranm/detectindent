@@ -55,6 +55,12 @@ fun! <SID>DetectIndent()
       let l:max_lines = g:detectindent_max_lines_to_analyse
     endif
 
+    let verbose_msg = ''
+    if ! exists("b:detectindent_cursettings")
+      " remember initial values for comparison
+      let b:detectindent_cursettings = {'expandtab': &et, 'shiftwidth': &sw, 'tabstop': &ts, 'softtabstop': &sts}
+    endif
+
     let l:idx_end = line("$")
     let l:idx = 1
     while l:idx <= l:idx_end
@@ -112,7 +118,7 @@ fun! <SID>DetectIndent()
 
     if l:has_leading_tabs && ! l:has_leading_spaces
         " tabs only, no spaces
-        if &verbose >= g:detectindent_verbosity | echo "Detected tabs only, no spaces" | endif
+        let l:verbose_msg = "Detected tabs only, no spaces"
         setl noexpandtab
         if exists("g:detectindent_preferred_indent")
             let &l:shiftwidth  = g:detectindent_preferred_indent
@@ -121,21 +127,21 @@ fun! <SID>DetectIndent()
 
     elseif l:has_leading_spaces && ! l:has_leading_tabs
         " spaces only, no tabs
-        if &verbose >= g:detectindent_verbosity | echo "Detected spaces only, no tabs" | endif
+        let l:verbose_msg = "Detected spaces only, no tabs"
         setl expandtab
         let &l:shiftwidth  = l:shortest_leading_spaces_run
         let &l:softtabstop = l:shortest_leading_spaces_run
 
     elseif l:has_leading_spaces && l:has_leading_tabs
         " spaces and tabs
-        if &verbose >= g:detectindent_verbosity | echo "Detected spaces and tabs" | endif
+        let l:verbose_msg = "Detected spaces and tabs"
         setl noexpandtab
         let &l:shiftwidth = l:shortest_leading_spaces_run
 
         " mmmm, time to guess how big tabs are
-        if l:longest_leading_spaces_run < 2
+        if l:longest_leading_spaces_run <= 2
             let &l:tabstop = 2
-        elseif l:longest_leading_spaces_run < 4
+        elseif l:longest_leading_spaces_run <= 4
             let &l:tabstop = 4
         else
             let &l:tabstop = 8
@@ -143,7 +149,7 @@ fun! <SID>DetectIndent()
 
     else
         " no spaces, no tabs
-        if &verbose >= g:detectindent_verbosity | echo "Detected no spaces, no spaces" | endif
+        let l:verbose_msg = "Detected no spaces, no spaces"
         if exists("g:detectindent_preferred_indent") &&
                     \ exists("g:detectindent_preferred_expandtab")
             setl expandtab
@@ -159,6 +165,25 @@ fun! <SID>DetectIndent()
             setl noexpandtab
         endif
 
+    endif
+
+    if &verbose >= g:detectindent_verbosity
+        echo l:verbose_msg
+                    \ ."; has_leading_tabs:" l:has_leading_tabs
+                    \ .", has_leading_spaces:" l:has_leading_spaces
+                    \ .", shortest_leading_spaces_run:" l:shortest_leading_spaces_run
+                    \ .", longest_leading_spaces_run:" l:longest_leading_spaces_run
+
+        let changed_msg = []
+        for [setting, oldval] in items(b:detectindent_cursettings)
+          exec 'let newval = &'.setting
+          if oldval != newval
+            let changed_msg += [ setting." changed from ".oldval." to ".newval ]
+          end
+        endfor
+        if len(changed_msg)
+          echo "Initial buffer settings changed:" join(changed_msg, ", ")
+        endif
     endif
 endfun
 
