@@ -187,5 +187,5 @@ fun! <SID>DetectIndent()
     endif
 endfun
 
-command! -nargs=0 DetectIndent call <SID>DetectIndent()
+command! -bar -nargs=0 DetectIndent call <SID>DetectIndent()
 
