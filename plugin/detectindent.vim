@@ -49,6 +49,7 @@ fun! <SID>DetectIndent()
     let l:has_leading_tabs            = 0
     let l:has_leading_spaces          = 0
     let l:shortest_leading_spaces_run = 0
+    let l:shortest_leading_spaces_idx = 0
     let l:longest_leading_spaces_run  = 0
     let l:max_lines                   = 1024
     if exists("g:detectindent_max_lines_to_analyse")
@@ -104,6 +105,7 @@ fun! <SID>DetectIndent()
                 if l:shortest_leading_spaces_run == 0 ||
                             \ l:spaces < l:shortest_leading_spaces_run
                     let l:shortest_leading_spaces_run = l:spaces
+                    let l:shortest_leading_spaces_idx = l:idx
                 endif
                 if l:spaces > l:longest_leading_spaces_run
                     let l:longest_leading_spaces_run = l:spaces
@@ -178,6 +180,7 @@ fun! <SID>DetectIndent()
                     \ ."; has_leading_tabs:" l:has_leading_tabs
                     \ .", has_leading_spaces:" l:has_leading_spaces
                     \ .", shortest_leading_spaces_run:" l:shortest_leading_spaces_run
+                    \ .", shortest_leading_spaces_idx:" l:shortest_leading_spaces_idx
                     \ .", longest_leading_spaces_run:" l:longest_leading_spaces_run
 
         let changed_msg = []
