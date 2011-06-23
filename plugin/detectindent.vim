@@ -41,6 +41,10 @@ fun! <SID>IsCommentEnd(line)
     return <SID>HasCStyleComments() && a:line =~ '\*/'
 endfun
 
+fun! <SID>IsCommentLine(line)
+    return <SID>HasCStyleComments() && a:line =~ '^\s\+//'
+endfun
+
 fun! <SID>DetectIndent()
     let l:has_leading_tabs            = 0
     let l:has_leading_spaces          = 0
@@ -69,6 +73,12 @@ fun! <SID>DetectIndent()
                 let l:idx = l:idx + 1
                 let l:line = getline(l:idx)
             endwhile
+            let l:idx = l:idx + 1
+            continue
+        endif
+
+        " Skip comment lines since they are not dependable.
+        if <SID>IsCommentLine(l:line)
             let l:idx = l:idx + 1
             continue
         endif
