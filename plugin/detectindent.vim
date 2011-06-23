@@ -28,21 +28,17 @@ if !exists('g:detectindent_verbosity')
     let g:detectindent_verbosity = 1
 endif
 
+fun! <SID>HasCStyleComments()
+    return index(["c", "cpp", "java", "javascript", "php"], &ft) != -1
+endfun
+
 fun! <SID>IsCommentStart(line)
     " &comments aren't reliable
-    if index(["c", "cpp", "javascript", "php"], &ft) != -1
-        return -1 != match(a:line, '/\*')
-    else
-        return 0
-    endif
+    return <SID>HasCStyleComments() && a:line =~ '/\*'
 endfun
 
 fun! <SID>IsCommentEnd(line)
-    if index(["c", "cpp", "javascript", "php"], &ft) != -1
-        return -1 != match(a:line, '\*/')
-    else
-        return 0
-    endif
+    return <SID>HasCStyleComments() && a:line =~ '\*/'
 endfun
 
 fun! <SID>DetectIndent()
