@@ -28,27 +28,28 @@ if !exists('g:detectindent_verbosity')
     let g:detectindent_verbosity = 1
 endif
 
+fun! <SID>HasCStyleComments()
+    return index(["c", "cpp", "java", "javascript", "php"], &ft) != -1
+endfun
+
 fun! <SID>IsCommentStart(line)
     " &comments aren't reliable
-    if index(["c", "cpp", "javascript", "php"], &ft) != -1
-        return -1 != match(a:line, '/\*')
-    else
-        return 0
-    endif
+    return <SID>HasCStyleComments() && a:line =~ '/\*'
 endfun
 
 fun! <SID>IsCommentEnd(line)
-    if index(["c", "cpp", "javascript", "php"], &ft) != -1
-        return -1 != match(a:line, '\*/')
-    else
-        return 0
-    endif
+    return <SID>HasCStyleComments() && a:line =~ '\*/'
+endfun
+
+fun! <SID>IsCommentLine(line)
+    return <SID>HasCStyleComments() && a:line =~ '^\s\+//'
 endfun
 
 fun! <SID>DetectIndent()
     let l:has_leading_tabs            = 0
     let l:has_leading_spaces          = 0
     let l:shortest_leading_spaces_run = 0
+    let l:shortest_leading_spaces_idx = 0
     let l:longest_leading_spaces_run  = 0
     let l:max_lines                   = 1024
     if exists("g:detectindent_max_lines_to_analyse")
@@ -77,6 +78,12 @@ fun! <SID>DetectIndent()
             continue
         endif
 
+        " Skip comment lines since they are not dependable.
+        if <SID>IsCommentLine(l:line)
+            let l:idx = l:idx + 1
+            continue
+        endif
+
         " Skip lines that are solely whitespace, since they're less likely to
         " be properly constructed.
         if l:line !~ '\S'
@@ -98,6 +105,7 @@ fun! <SID>DetectIndent()
                 if l:shortest_leading_spaces_run == 0 ||
                             \ l:spaces < l:shortest_leading_spaces_run
                     let l:shortest_leading_spaces_run = l:spaces
+                    let l:shortest_leading_spaces_idx = l:idx
                 endif
                 if l:spaces > l:longest_leading_spaces_run
                     let l:longest_leading_spaces_run = l:spaces
@@ -172,6 +180,7 @@ fun! <SID>DetectIndent()
                     \ ."; has_leading_tabs:" l:has_leading_tabs
                     \ .", has_leading_spaces:" l:has_leading_spaces
                     \ .", shortest_leading_spaces_run:" l:shortest_leading_spaces_run
+                    \ .", shortest_leading_spaces_idx:" l:shortest_leading_spaces_idx
                     \ .", longest_leading_spaces_run:" l:longest_leading_spaces_run
 
         let changed_msg = []
