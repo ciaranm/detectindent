@@ -124,40 +124,21 @@ fun! <SID>DetectIndent()
 
     endwhile
 
-    if l:leading_tab_count && ! leading_space_count
-        " tabs only, no spaces
-        let l:verbose_msg = "Detected tabs only and no spaces"
+    if l:leading_tab_count > leading_space_count
+        let l:verbose_msg = "Use tab to indent."
         setl noexpandtab
         if exists("g:detectindent_preferred_indent")
             let &l:shiftwidth  = g:detectindent_preferred_indent
             let &l:tabstop     = g:detectindent_preferred_indent
         endif
 
-    elseif leading_space_count && ! l:leading_tab_count
-        " spaces only, no tabs
-        let l:verbose_msg = "Detected spaces only and no tabs"
+    elseif leading_space_count > l:leading_tab_count
+        let l:verbose_msg = "Use space to indent."
         setl expandtab
         let &l:shiftwidth  = l:shortest_leading_spaces_run
         let &l:softtabstop = l:shortest_leading_spaces_run
-
-    elseif leading_space_count && l:leading_tab_count
-        " spaces and tabs
-        let l:verbose_msg = "Detected spaces and tabs"
-        setl noexpandtab
-        let &l:shiftwidth = l:shortest_leading_spaces_run
-
-        " mmmm, time to guess how big tabs are
-        if l:longest_leading_spaces_run <= 2
-            let &l:tabstop = 2
-        elseif l:longest_leading_spaces_run <= 4
-            let &l:tabstop = 4
-        else
-            let &l:tabstop = 8
-        endif
-
     else
-        " no spaces, no tabs
-        let l:verbose_msg = "Detected no spaces and no tabs"
+        let l:verbose_msg = "Cannot determine indent. Use default to indent."
         if exists("g:detectindent_preferred_indent") &&
                     \ exists("g:detectindent_preferred_expandtab")
             setl expandtab
