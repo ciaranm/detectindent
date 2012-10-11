@@ -46,8 +46,8 @@ fun! <SID>IsCommentLine(line)
 endfun
 
 fun! <SID>DetectIndent()
-    let l:has_leading_tabs            = 0
-    let l:has_leading_spaces          = 0
+    let l:leading_tab_count           = 0
+    let leading_space_count           = 0
     let l:shortest_leading_spaces_run = 0
     let l:shortest_leading_spaces_idx = 0
     let l:longest_leading_spaces_run  = 0
@@ -94,13 +94,13 @@ fun! <SID>DetectIndent()
         let l:leading_char = strpart(l:line, 0, 1)
 
         if l:leading_char == "\t"
-            let l:has_leading_tabs = 1
+            let l:leading_tab_count = l:leading_tab_count + 1
 
         elseif l:leading_char == " "
             " only interested if we don't have a run of spaces followed by a
             " tab.
             if -1 == match(l:line, '^ \+\t')
-                let l:has_leading_spaces = 1
+                let leading_space_count = leading_space_count + 1
                 let l:spaces = strlen(matchstr(l:line, '^ \+'))
                 if l:shortest_leading_spaces_run == 0 ||
                             \ l:spaces < l:shortest_leading_spaces_run
@@ -124,7 +124,7 @@ fun! <SID>DetectIndent()
 
     endwhile
 
-    if l:has_leading_tabs && ! l:has_leading_spaces
+    if l:leading_tab_count && ! leading_space_count
         " tabs only, no spaces
         let l:verbose_msg = "Detected tabs only and no spaces"
         setl noexpandtab
@@ -133,14 +133,14 @@ fun! <SID>DetectIndent()
             let &l:tabstop     = g:detectindent_preferred_indent
         endif
 
-    elseif l:has_leading_spaces && ! l:has_leading_tabs
+    elseif leading_space_count && ! l:leading_tab_count
         " spaces only, no tabs
         let l:verbose_msg = "Detected spaces only and no tabs"
         setl expandtab
         let &l:shiftwidth  = l:shortest_leading_spaces_run
         let &l:softtabstop = l:shortest_leading_spaces_run
 
-    elseif l:has_leading_spaces && l:has_leading_tabs
+    elseif leading_space_count && l:leading_tab_count
         " spaces and tabs
         let l:verbose_msg = "Detected spaces and tabs"
         setl noexpandtab
@@ -177,8 +177,8 @@ fun! <SID>DetectIndent()
 
     if &verbose >= g:detectindent_verbosity
         echo l:verbose_msg
-                    \ ."; has_leading_tabs:" l:has_leading_tabs
-                    \ .", has_leading_spaces:" l:has_leading_spaces
+                    \ ."; leading_tab_count:" l:leading_tab_count
+                    \ .", leading_space_count:" leading_space_count
                     \ .", shortest_leading_spaces_run:" l:shortest_leading_spaces_run
                     \ .", shortest_leading_spaces_idx:" l:shortest_leading_spaces_idx
                     \ .", longest_leading_spaces_run:" l:longest_leading_spaces_run
