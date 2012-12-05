@@ -45,12 +45,22 @@ fun! <SID>IsCommentLine(line)
     return <SID>HasCStyleComments() && a:line =~ '^\s\+//'
 endfun
 
+fun! <SID>GCD(x, y)
+    let l:a = a:x
+    let l:b = a:y
+    while l:b > 0
+        let l:temp = l:b
+        let l:b = l:a % l:b
+        let l:a = l:temp
+    endwhile
+    return l:a
+endfun
+
 fun! <SID>DetectIndent()
     let l:leading_tab_count           = 0
     let l:leading_space_count         = 0
-    let l:shortest_leading_spaces_run = 0
-    let l:shortest_leading_spaces_idx = 0
-    let l:longest_leading_spaces_run  = 0
+    let l:leading_space_dict          = {}
+    let l:leading_spaces_gcd          = 0
     let l:max_lines                   = 1024
     if exists("g:detectindent_max_lines_to_analyse")
       let l:max_lines = g:detectindent_max_lines_to_analyse
@@ -102,14 +112,7 @@ fun! <SID>DetectIndent()
             if -1 == match(l:line, '^ \+\t')
                 let l:leading_space_count = l:leading_space_count + 1
                 let l:spaces = strlen(matchstr(l:line, '^ \+'))
-                if l:shortest_leading_spaces_run == 0 ||
-                            \ l:spaces < l:shortest_leading_spaces_run
-                    let l:shortest_leading_spaces_run = l:spaces
-                    let l:shortest_leading_spaces_idx = l:idx
-                endif
-                if l:spaces > l:longest_leading_spaces_run
-                    let l:longest_leading_spaces_run = l:spaces
-                endif
+		let l:leading_space_dict[l:spaces] = get(l:leading_space_dict, l:spaces) + 1
             endif
 
         endif
@@ -133,10 +136,25 @@ fun! <SID>DetectIndent()
         endif
 
     elseif l:leading_space_count > l:leading_tab_count
-        let l:verbose_msg = "Use space to indent."
-        setl expandtab
-        let &l:shiftwidth  = l:shortest_leading_spaces_run
-        let &l:softtabstop = l:shortest_leading_spaces_run
+        " Filter out those tab stops which occurred in < 10% of the lines
+        call filter(l:leading_space_dict, '100*v:val/l:leading_space_count >= 10')
+
+        " Find the greatest common divisor of the remaining tab stop lengths
+        let l:leading_spaces_gcd = 0
+        for length in keys(l:leading_space_dict)
+            if l:leading_spaces_gcd == 0
+                let l:leading_spaces_gcd = length
+            else
+                let l:leading_spaces_gcd = <SID>GCD(length, l:leading_spaces_gcd)
+            endif
+        endfor
+
+        if l:leading_spaces_gcd != 0
+            let l:verbose_msg = "Use space to indent."
+            setl expandtab
+            let &l:shiftwidth  = l:leading_spaces_gcd
+            let &l:softtabstop = l:leading_spaces_gcd
+        endif
     else
         let l:verbose_msg = "Cannot determine indent. Use default to indent."
         if exists("g:detectindent_preferred_indent") &&
@@ -160,9 +178,7 @@ fun! <SID>DetectIndent()
         echo l:verbose_msg
                     \ ."; leading_tab_count:" l:leading_tab_count
                     \ .", leading_space_count:" l:leading_space_count
-                    \ .", shortest_leading_spaces_run:" l:shortest_leading_spaces_run
-                    \ .", shortest_leading_spaces_idx:" l:shortest_leading_spaces_idx
-                    \ .", longest_leading_spaces_run:" l:longest_leading_spaces_run
+                    \ .", leading_spaces_gcd:" l:leading_spaces_gcd
 
         let changed_msg = []
         for [setting, oldval] in items(b:detectindent_cursettings)
