@@ -47,7 +47,7 @@ endfun
 
 fun! <SID>DetectIndent()
     let l:leading_tab_count           = 0
-    let leading_space_count           = 0
+    let l:leading_space_count         = 0
     let l:shortest_leading_spaces_run = 0
     let l:shortest_leading_spaces_idx = 0
     let l:longest_leading_spaces_run  = 0
@@ -100,7 +100,7 @@ fun! <SID>DetectIndent()
             " only interested if we don't have a run of spaces followed by a
             " tab.
             if -1 == match(l:line, '^ \+\t')
-                let leading_space_count = leading_space_count + 1
+                let l:leading_space_count = l:leading_space_count + 1
                 let l:spaces = strlen(matchstr(l:line, '^ \+'))
                 if l:shortest_leading_spaces_run == 0 ||
                             \ l:spaces < l:shortest_leading_spaces_run
@@ -124,7 +124,7 @@ fun! <SID>DetectIndent()
 
     endwhile
 
-    if l:leading_tab_count > leading_space_count
+    if l:leading_tab_count > l:leading_space_count
         let l:verbose_msg = "Use tab to indent."
         setl noexpandtab
         if exists("g:detectindent_preferred_indent")
@@ -132,7 +132,7 @@ fun! <SID>DetectIndent()
             let &l:tabstop     = g:detectindent_preferred_indent
         endif
 
-    elseif leading_space_count > l:leading_tab_count
+    elseif l:leading_space_count > l:leading_tab_count
         let l:verbose_msg = "Use space to indent."
         setl expandtab
         let &l:shiftwidth  = l:shortest_leading_spaces_run
@@ -159,7 +159,7 @@ fun! <SID>DetectIndent()
     if &verbose >= g:detectindent_verbosity
         echo l:verbose_msg
                     \ ."; leading_tab_count:" l:leading_tab_count
-                    \ .", leading_space_count:" leading_space_count
+                    \ .", leading_space_count:" l:leading_space_count
                     \ .", shortest_leading_spaces_run:" l:shortest_leading_spaces_run
                     \ .", shortest_leading_spaces_idx:" l:shortest_leading_spaces_idx
                     \ .", longest_leading_spaces_run:" l:longest_leading_spaces_run
