@@ -32,13 +32,17 @@ fun! <SID>HasCStyleComments()
     return index(["c", "cpp", "java", "javascript", "php"], &ft) != -1
 endfun
 
+fun! <SID>HasHTMLStyleComments()
+    return index(["html", "xml"], &ft) != -1
+endfun
+
 fun! <SID>IsCommentStart(line)
     " &comments aren't reliable
-    return <SID>HasCStyleComments() && a:line =~ '/\*'
+    return (<SID>HasCStyleComments() && a:line =~ '/\*') || (<SID>HasHTMLStyleComments() && a:line =~ '<!--')
 endfun
 
 fun! <SID>IsCommentEnd(line)
-    return <SID>HasCStyleComments() && a:line =~ '\*/'
+    return (<SID>HasCStyleComments() && a:line =~ '\*/') || (<SID>HasHTMLStyleComments() && a:line =~ '-->')
 endfun
 
 fun! <SID>IsCommentLine(line)
