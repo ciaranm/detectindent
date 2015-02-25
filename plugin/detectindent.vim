@@ -61,8 +61,8 @@ fun! s:SetIndent(expandtab, desired_tabstop)
 
     " Only modify tabs if we have a valid value.
     if a:desired_tabstop > 0
-        " See advice on `:help 'tabstop'` for logic of which values are set for
-        " what values of expandtab.
+        " See `:help 'tabstop'`. We generally adhere to #1 or #4, but when
+        " guessing what to do for mixed tabs and spaces we use #2.
 
         let &l:tabstop = a:desired_tabstop
         " NOTE: shiftwidth=0 keeps it in sync with tabstop, but that breaks
@@ -71,13 +71,11 @@ fun! s:SetIndent(expandtab, desired_tabstop)
         " https://github.com/tpope/vim-sleuth/issues/25
         let &l:shiftwidth = a:desired_tabstop
 
-        if !a:expandtab
-            if v:version >= 704
-                " Negative value automatically keeps in sync with shiftwidth in Vim 7.4+.
-                setl softtabstop=-1
-            else
-                let &l:softtabstop = a:desired_tabstop
-            endif
+        if v:version >= 704
+            " Negative value automatically keeps in sync with shiftwidth in Vim 7.4+.
+            setl softtabstop=-1
+        else
+            let &l:softtabstop = a:desired_tabstop
         endif
     endif
 endfun
@@ -178,7 +176,7 @@ fun! <SID>DetectIndent()
     elseif l:has_leading_spaces && l:has_leading_tabs && ! s:GetValue("detectindent_preferred_when_mixed")
         " spaces and tabs
         let l:verbose_msg = "Detected spaces and tabs"
-        call s:SetIndent(0, l:shortest_leading_spaces_run)
+        call s:SetIndent(1, l:shortest_leading_spaces_run)
 
         " mmmm, time to guess how big tabs are
         if l:longest_leading_spaces_run <= 2
