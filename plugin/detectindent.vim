@@ -65,12 +65,11 @@ fun! s:SetIndent(expandtab, desired_tabstop)
         " what values of expandtab.
 
         let &l:tabstop = a:desired_tabstop
-        if v:version >= 704
-            " Zero automatically keeps in sync with tabstop in Vim 7.4+.
-            setl shiftwidth=0
-        else
-            let &l:shiftwidth = a:desired_tabstop
-        endif
+        " NOTE: shiftwidth=0 keeps it in sync with tabstop, but that breaks
+        " many indentation plugins that read 'sw' instead of calling the new
+        " shiftwidth(). See
+        " https://github.com/tpope/vim-sleuth/issues/25
+        let &l:shiftwidth = a:desired_tabstop
 
         if !a:expandtab
             if v:version >= 704
