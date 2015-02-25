@@ -56,6 +56,33 @@ fun! s:GetValue(option)
     endif
 endfun
 
+fun! s:SetIndent(expandtab, desired_tabstop)
+    let &l:expandtab = a:expandtab
+
+    " Only modify tabs if we have a valid value.
+    if a:desired_tabstop > 0
+        " See advice on `:help 'tabstop'` for logic of which values are set for
+        " what values of expandtab.
+
+        let &l:tabstop = a:desired_tabstop
+        if v:version >= 704
+            " Zero automatically keeps in sync with tabstop in Vim 7.4+.
+            setl shiftwidth=0
+        else
+            let &l:shiftwidth = a:desired_tabstop
+        endif
+
+        if !a:expandtab
+            if v:version >= 704
+                " Negative value automatically keeps in sync with shiftwidth in Vim 7.4+.
+                setl softtabstop=-1
+            else
+                let &l:softtabstop = a:desired_tabstop
+            endif
+        endif
+    endif
+endfun
+
 fun! <SID>DetectIndent()
     let l:has_leading_tabs            = 0
     let l:has_leading_spaces          = 0
@@ -138,24 +165,21 @@ fun! <SID>DetectIndent()
     if l:has_leading_tabs && ! l:has_leading_spaces
         " tabs only, no spaces
         let l:verbose_msg = "Detected tabs only and no spaces"
-        setl noexpandtab
         if s:GetValue("detectindent_preferred_indent")
-            let &l:shiftwidth  = g:detectindent_preferred_indent
-            let &l:tabstop     = g:detectindent_preferred_indent
+            call s:SetIndent(0, g:detectindent_preferred_indent)
+        else
+            setl noexpandtab
         endif
 
     elseif l:has_leading_spaces && ! l:has_leading_tabs
         " spaces only, no tabs
         let l:verbose_msg = "Detected spaces only and no tabs"
-        setl expandtab
-        let &l:shiftwidth  = l:shortest_leading_spaces_run
-        let &l:softtabstop = l:shortest_leading_spaces_run
+        call s:SetIndent(1, l:shortest_leading_spaces_run)
 
     elseif l:has_leading_spaces && l:has_leading_tabs && ! s:GetValue("detectindent_preferred_when_mixed")
         " spaces and tabs
         let l:verbose_msg = "Detected spaces and tabs"
-        setl noexpandtab
-        let &l:shiftwidth = l:shortest_leading_spaces_run
+        call s:SetIndent(0, l:shortest_leading_spaces_run)
 
         " mmmm, time to guess how big tabs are
         if l:longest_leading_spaces_run <= 2
@@ -169,20 +193,7 @@ fun! <SID>DetectIndent()
     else
         " no spaces, no tabs
         let l:verbose_msg = s:GetValue("detectindent_preferred_when_mixed") ? "preferred_when_mixed is active" : "Detected no spaces and no tabs"
-        if s:GetValue("detectindent_preferred_indent") &&
-                    \ (s:GetValue("detectindent_preferred_expandtab"))
-            setl expandtab
-            let &l:shiftwidth  = g:detectindent_preferred_indent
-            let &l:softtabstop = g:detectindent_preferred_indent
-        elseif s:GetValue("detectindent_preferred_indent")
-            setl noexpandtab
-            let &l:shiftwidth  = g:detectindent_preferred_indent
-            let &l:tabstop     = g:detectindent_preferred_indent
-        elseif s:GetValue("detectindent_preferred_expandtab")
-            setl expandtab
-        else
-            setl noexpandtab
-        endif
+        call s:SetIndent(s:GetValue("detectindent_preferred_expandtab"), s:GetValue("detectindent_preferred_indent"))
 
     endif
 
