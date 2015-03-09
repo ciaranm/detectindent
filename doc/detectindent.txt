@@ -30,6 +30,11 @@ Author:  Ciaran McCreesh <ciaran.mccreesh at googlemail.com>
 		:let g:detectindent_preferred_indent = 4
 <       in your |vimrc| file.
 
+	To use the preferred values when both tabs and spaces are detected,
+	set: >
+		:let g:detectindent_preferred_when_mixed = 1
+<	in your |vimrc| file.
+
 	To set limit for number of lines that will be analysed set: >
 		:let g:detectindent_max_lines_to_analyse = 1024
 <	in your |vimrc| file.
@@ -37,6 +42,8 @@ Author:  Ciaran McCreesh <ciaran.mccreesh at googlemail.com>
 ==============================================================================
 3. DetectIndent ChangeLog			      *detectindent-changelog*
 
+	v1.1 (20150225)
+	    * Add preferred_when_mixed.
 	v1.0 (20050105)
 	    * initial release after discussion on irc.freenode.net:#vim
 

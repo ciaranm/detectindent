@@ -16,6 +16,9 @@
 "                " to set a preferred indent level when detection is
 "                " impossible:
 "                :let g:detectindent_preferred_indent = 4
+"                
+"                " To use preferred values instead of guessing:
+"                :let g:detectindent_preferred_when_mixed = 1
 "
 " Requirements:  Untested on Vim versions below 6.2
 
@@ -140,7 +143,7 @@ fun! <SID>DetectIndent()
         let &l:shiftwidth  = l:shortest_leading_spaces_run
         let &l:softtabstop = l:shortest_leading_spaces_run
 
-    elseif l:has_leading_spaces && l:has_leading_tabs
+    elseif l:has_leading_spaces && l:has_leading_tabs && ! exists("g:detectindent_preferred_when_mixed")
         " spaces and tabs
         let l:verbose_msg = "Detected spaces and tabs"
         setl noexpandtab
@@ -157,7 +160,7 @@ fun! <SID>DetectIndent()
 
     else
         " no spaces, no tabs
-        let l:verbose_msg = "Detected no spaces and no tabs"
+        let l:verbose_msg = exists("g:detectindent_preferred_when_mixed") ? "preferred_when_mixed is active" : "Detected no spaces and no tabs"
         if exists("g:detectindent_preferred_indent") &&
                     \ exists("g:detectindent_preferred_expandtab")
             setl expandtab
