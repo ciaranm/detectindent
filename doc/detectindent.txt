@@ -28,7 +28,7 @@ Author:  Ciaran McCreesh <ciaran.mccreesh at googlemail.com>
 	To set a preferred value for 'shiftwidth' and 'tabstop' when they
 	cannot be automatically detected, set: >
 		:let g:detectindent_preferred_indent = 4
-<       in your |vimrc| file.
+<	in your |vimrc| file.
 
 	To use the preferred values when both tabs and spaces are detected,
 	set: >
@@ -39,11 +39,20 @@ Author:  Ciaran McCreesh <ciaran.mccreesh at googlemail.com>
 		:let g:detectindent_max_lines_to_analyse = 1024
 <	in your |vimrc| file.
 
+	To override |detectindent_preferred_expandtab| for specific filetypes
+	(example: use 4-character tabstops with tabs for python) set: >
+		:let b:detectindent_preferred_expandtab = 0
+	    	:let b:detectindent_preferred_indent = 4
+<	after/ftplugin/FILETYPENAMEHERE.vim (example:
+	after/ftplugin/python.vim). Using 0 acts as if the option was never
+	set.
+
 ==============================================================================
 3. DetectIndent ChangeLog			      *detectindent-changelog*
 
 	v1.1 (20150225)
 	    * Add preferred_when_mixed.
+	    * Add buffer-local options.
 	v1.0 (20050105)
 	    * initial release after discussion on irc.freenode.net:#vim
 

@@ -48,6 +48,14 @@ fun! <SID>IsCommentLine(line)
     return <SID>HasCStyleComments() && a:line =~ '^\s\+//'
 endfun
 
+fun! s:GetValue(option)
+    if exists('b:'. a:option)
+        return get(b:, a:option)
+    else
+        return get(g:, a:option)
+    endif
+endfun
+
 fun! <SID>DetectIndent()
     let l:has_leading_tabs            = 0
     let l:has_leading_spaces          = 0
@@ -131,7 +139,7 @@ fun! <SID>DetectIndent()
         " tabs only, no spaces
         let l:verbose_msg = "Detected tabs only and no spaces"
         setl noexpandtab
-        if exists("g:detectindent_preferred_indent")
+        if s:GetValue("detectindent_preferred_indent")
             let &l:shiftwidth  = g:detectindent_preferred_indent
             let &l:tabstop     = g:detectindent_preferred_indent
         endif
@@ -143,7 +151,7 @@ fun! <SID>DetectIndent()
         let &l:shiftwidth  = l:shortest_leading_spaces_run
         let &l:softtabstop = l:shortest_leading_spaces_run
 
-    elseif l:has_leading_spaces && l:has_leading_tabs && ! exists("g:detectindent_preferred_when_mixed")
+    elseif l:has_leading_spaces && l:has_leading_tabs && ! s:GetValue("detectindent_preferred_when_mixed")
         " spaces and tabs
         let l:verbose_msg = "Detected spaces and tabs"
         setl noexpandtab
@@ -160,17 +168,17 @@ fun! <SID>DetectIndent()
 
     else
         " no spaces, no tabs
-        let l:verbose_msg = exists("g:detectindent_preferred_when_mixed") ? "preferred_when_mixed is active" : "Detected no spaces and no tabs"
-        if exists("g:detectindent_preferred_indent") &&
-                    \ exists("g:detectindent_preferred_expandtab")
+        let l:verbose_msg = s:GetValue("detectindent_preferred_when_mixed") ? "preferred_when_mixed is active" : "Detected no spaces and no tabs"
+        if s:GetValue("detectindent_preferred_indent") &&
+                    \ (s:GetValue("detectindent_preferred_expandtab"))
             setl expandtab
             let &l:shiftwidth  = g:detectindent_preferred_indent
             let &l:softtabstop = g:detectindent_preferred_indent
-        elseif exists("g:detectindent_preferred_indent")
+        elseif s:GetValue("detectindent_preferred_indent")
             setl noexpandtab
             let &l:shiftwidth  = g:detectindent_preferred_indent
             let &l:tabstop     = g:detectindent_preferred_indent
-        elseif exists("g:detectindent_preferred_expandtab")
+        elseif s:GetValue("detectindent_preferred_expandtab")
             setl expandtab
         else
             setl noexpandtab
