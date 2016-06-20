@@ -140,8 +140,8 @@ fun! <SID>DetectIndent()
         let l:verbose_msg = "Detected tabs only and no spaces"
         setl noexpandtab
         if s:GetValue("detectindent_preferred_indent")
-            let &l:shiftwidth  = g:detectindent_preferred_indent
-            let &l:tabstop     = g:detectindent_preferred_indent
+            let &l:shiftwidth  = s:GetValue("detectindent_preferred_indent")
+            let &l:tabstop     = s:GetValue("detectindent_preferred_indent")
         endif
 
     elseif l:has_leading_spaces && ! l:has_leading_tabs
@@ -172,12 +172,12 @@ fun! <SID>DetectIndent()
         if s:GetValue("detectindent_preferred_indent") &&
                     \ (s:GetValue("detectindent_preferred_expandtab"))
             setl expandtab
-            let &l:shiftwidth  = g:detectindent_preferred_indent
-            let &l:softtabstop = g:detectindent_preferred_indent
+            let &l:shiftwidth  = s:GetValue("detectindent_preferred_indent")
+            let &l:tabstop     = s:GetValue("detectindent_preferred_indent")
         elseif s:GetValue("detectindent_preferred_indent")
             setl noexpandtab
-            let &l:shiftwidth  = g:detectindent_preferred_indent
-            let &l:tabstop     = g:detectindent_preferred_indent
+            let &l:shiftwidth  = s:GetValue("detectindent_preferred_indent")
+            let &l:tabstop     = s:GetValue("detectindent_preferred_indent")
         elseif s:GetValue("detectindent_preferred_expandtab")
             setl expandtab
         else
