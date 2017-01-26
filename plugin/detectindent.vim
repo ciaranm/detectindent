@@ -158,9 +158,9 @@ fun! <SID>DetectIndent()
         let &l:shiftwidth = l:shortest_leading_spaces_run
 
         " mmmm, time to guess how big tabs are
-        if l:longest_leading_spaces_run <= 2
+        if l:shortest_leading_spaces_run <= 2
             let &l:tabstop = 2
-        elseif l:longest_leading_spaces_run <= 4
+        elseif l:shortest_leading_spaces_run <= 4
             let &l:tabstop = 4
         else
             let &l:tabstop = 8
