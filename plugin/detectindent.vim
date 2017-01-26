@@ -57,8 +57,8 @@ fun! s:GetValue(option)
 endfun
 
 fun! <SID>DetectIndent()
-    let l:has_leading_tabs            = 0
-    let l:has_leading_spaces          = 0
+    let l:leading_tabs_number         = 0
+    let l:leading_spaces_number       = 0
     let l:shortest_leading_spaces_run = 0
     let l:shortest_leading_spaces_idx = 0
     let l:longest_leading_spaces_run  = 0
@@ -105,13 +105,13 @@ fun! <SID>DetectIndent()
         let l:leading_char = strpart(l:line, 0, 1)
 
         if l:leading_char == "\t"
-            let l:has_leading_tabs = 1
+            let l:leading_tabs_number += 1
 
         elseif l:leading_char == " "
             " only interested if we don't have a run of spaces followed by a
             " tab.
             if -1 == match(l:line, '^ \+\t')
-                let l:has_leading_spaces = 1
+                let l:leading_spaces_number += 1
                 let l:spaces = strlen(matchstr(l:line, '^ \+'))
                 if l:shortest_leading_spaces_run == 0 ||
                             \ l:spaces < l:shortest_leading_spaces_run
@@ -135,7 +135,7 @@ fun! <SID>DetectIndent()
 
     endwhile
 
-    if l:has_leading_tabs && ! l:has_leading_spaces
+    if l:leading_tabs_number && ! l:leading_spaces_number
         " tabs only, no spaces
         let l:verbose_msg = "Detected tabs only and no spaces"
         setl noexpandtab
@@ -144,23 +144,29 @@ fun! <SID>DetectIndent()
             let &l:tabstop     = g:detectindent_preferred_indent
         endif
 
-    elseif l:has_leading_spaces && ! l:has_leading_tabs
+    elseif l:leading_spaces_number && ! l:leading_tabs_number
         " spaces only, no tabs
         let l:verbose_msg = "Detected spaces only and no tabs"
         setl expandtab
         let &l:shiftwidth  = l:shortest_leading_spaces_run
         let &l:softtabstop = l:shortest_leading_spaces_run
 
-    elseif l:has_leading_spaces && l:has_leading_tabs && ! s:GetValue("detectindent_preferred_when_mixed")
+    elseif l:leading_spaces_number && l:leading_tabs_number && ! s:GetValue("detectindent_preferred_when_mixed")
         " spaces and tabs
         let l:verbose_msg = "Detected spaces and tabs"
-        setl noexpandtab
+
+        if l:leading_spaces_number < l:leading_tabs_number
+            setl noexpandtab
+        else
+            setl expandtab
+        endif
+
         let &l:shiftwidth = l:shortest_leading_spaces_run
 
         " mmmm, time to guess how big tabs are
-        if l:longest_leading_spaces_run <= 2
+        if l:shortest_leading_spaces_run <= 2
             let &l:tabstop = 2
-        elseif l:longest_leading_spaces_run <= 4
+        elseif l:shortest_leading_spaces_run <= 4
             let &l:tabstop = 4
         else
             let &l:tabstop = 8
@@ -188,8 +194,8 @@ fun! <SID>DetectIndent()
 
     if &verbose >= g:detectindent_verbosity
         echo l:verbose_msg
-                    \ ."; has_leading_tabs:" l:has_leading_tabs
-                    \ .", has_leading_spaces:" l:has_leading_spaces
+                    \ ."; leading_tabs_number:" l:leading_tabs_number
+                    \ .", leading_spaces_number:" l:leading_spaces_number
                     \ .", shortest_leading_spaces_run:" l:shortest_leading_spaces_run
                     \ .", shortest_leading_spaces_idx:" l:shortest_leading_spaces_idx
                     \ .", longest_leading_spaces_run:" l:longest_leading_spaces_run
