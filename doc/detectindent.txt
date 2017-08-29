@@ -37,6 +37,12 @@ Author:  Ciaran McCreesh <ciaran.mccreesh at googlemail.com>
 
 	To set limit for number of lines that will be analysed set: >
 		:let g:detectindent_max_lines_to_analyse = 1024
+<	in your |vimrc| file. Low values will improve performance at the cost
+        of accuracy.
+
+        To ignore indent in comments by checking vim's syntax highlighting to
+        improve accuracy at a significant speed penalty: >
+                :let g:detectindent_check_comment_syntax = 1
 <	in your |vimrc| file.
 
 	To override |detectindent_preferred_expandtab| for specific filetypes

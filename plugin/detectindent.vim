@@ -20,6 +20,9 @@
 "                " To use preferred values instead of guessing:
 "                :let g:detectindent_preferred_when_mixed = 1
 "
+"                " To reduce the number of lines inspected:
+"                :let g:detectindent_max_lines_to_analyse = 100
+"
 " Requirements:  Untested on Vim versions below 6.2
 
 if exists("loaded_detectindent")
@@ -30,6 +33,10 @@ let loaded_detectindent = 1
 if !exists('g:detectindent_verbosity')
     let g:detectindent_verbosity = 1
 endif
+
+" Ignore comment lines via syntax (slow but accurate):
+let g:detectindent_check_comment_syntax = get(g:, 'detectindent_check_comment_syntax', 0)
+
 
 fun! <SID>HasCStyleComments()
     return index(["c", "cpp", "java", "javascript", "php", "vala"], &ft) != -1
@@ -42,6 +49,16 @@ endfun
 
 fun! <SID>IsCommentEnd(line)
     return <SID>HasCStyleComments() && a:line =~ '\*/'
+endfun
+
+fun! s:HasCommentSyntax(line_number, line_text) " {{{1
+    " Some languages (lua) don't define space before a comment as part of the
+    " comment so look at the first nonblank character.
+    let nonblank_col = substitute(a:line_text, "^\s*\zs.*", "", "")
+    let transparent = 1
+    let id = synID(a:line_number, len(nonblank_col), transparent)
+    let syntax = synIDattr(id, 'name')
+    return syntax =~? 'string\|comment'
 endfun
 
 fun! <SID>IsCommentLine(line)
@@ -96,6 +113,8 @@ fun! <SID>DetectIndent()
       " remember initial values for comparison
       let b:detectindent_cursettings = {'expandtab': &et, 'shiftwidth': &sw, 'tabstop': &ts, 'softtabstop': &sts}
     endif
+    
+    let can_check_syntax = s:GetValue('detectindent_check_comment_syntax')
 
     let l:idx_end = line("$")
     let l:idx = 1
@@ -114,7 +133,7 @@ fun! <SID>DetectIndent()
         endif
 
         " Skip comment lines since they are not dependable.
-        if <SID>IsCommentLine(l:line)
+        if <SID>IsCommentLine(l:line) || (can_check_syntax && s:HasCommentSyntax(l:idx, l:line))
             let l:idx = l:idx + 1
             continue
         endif
