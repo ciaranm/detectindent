@@ -20,6 +20,10 @@
 "                " To use preferred values instead of guessing:
 "                :let g:detectindent_preferred_when_mixed = 1
 "
+"                " To use the first character seen (spaces or tabs) in case of
+"                " mixed detection:
+"                :let g:detectindent_never_mix = 1
+"
 " Requirements:  Untested on Vim versions below 6.2
 
 if exists("loaded_detectindent")
@@ -58,6 +62,7 @@ endfun
 
 fun! <SID>DetectIndent()
     let l:has_leading_tabs            = 0
+    let l:leading_tabs_idx            = 0
     let l:has_leading_spaces          = 0
     let l:shortest_leading_spaces_run = 0
     let l:shortest_leading_spaces_idx = 0
@@ -106,6 +111,9 @@ fun! <SID>DetectIndent()
 
         if l:leading_char == "\t"
             let l:has_leading_tabs = 1
+            if l:leading_tabs_idx == 0
+                let l:leading_tabs_idx = l:idx
+            endif
 
         elseif l:leading_char == " "
             " only interested if we don't have a run of spaces followed by a
@@ -150,6 +158,19 @@ fun! <SID>DetectIndent()
         setl expandtab
         let &l:shiftwidth  = l:shortest_leading_spaces_run
         let &l:softtabstop = l:shortest_leading_spaces_run
+
+    elseif l:has_leading_spaces && l:has_leading_tabs && s:GetValue("detectindent_never_mix")
+        if l:leading_tabs_idx < l:shortest_leading_spaces_idx
+            let l:verbose_msg = "Detected tabs before spaces"
+            setl noexpandtab
+            let &l:shiftwidth  = l:shortest_leading_spaces_run
+            let &l:tabstop     = l:shortest_leading_spaces_run
+        else
+            let l:verbose_msg = "Detected spaces before tabs"
+            setl expandtab
+            let &l:shiftwidth  = l:shortest_leading_spaces_run
+            let &l:softtabstop = l:shortest_leading_spaces_run
+        end
 
     elseif l:has_leading_spaces && l:has_leading_tabs && ! s:GetValue("detectindent_preferred_when_mixed")
         " spaces and tabs
