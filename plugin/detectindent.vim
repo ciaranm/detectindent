@@ -162,11 +162,13 @@ fun! <SID>DetectIndent()
     if l:has_leading_tabs && ! l:has_leading_spaces
         " tabs only, no spaces
         let l:verbose_msg = "Detected tabs only and no spaces"
-        if s:GetValue("detectindent_preferred_indent")
-            call s:SetIndent(0, g:detectindent_preferred_indent)
-        else
-            setl noexpandtab
+        let indent = s:GetValue("detectindent_preferred_indent")
+        if indent == 0
+            " Default behavior is to retain current tabstop. Still need to set
+            " it to ensure softtabstop, shiftwidth, tabstop are in sync.
+            let indent = &l:tabstop
         endif
+        call s:SetIndent(0, indent)
 
     elseif l:has_leading_spaces && ! l:has_leading_tabs
         " spaces only, no tabs
