@@ -37,19 +37,92 @@ endif
 " Ignore comment lines via syntax (slow but accurate):
 let g:detectindent_check_comment_syntax = get(g:, 'detectindent_check_comment_syntax', 0)
 
+" Ignore 'comments' when detecting comment blocks.
+let g:detectindent_comments_blacklist = get(g:, 'detectindent_comments_blacklist', [])
 
-fun! <SID>HasCStyleComments()
-    return index(["c", "cpp", "java", "javascript", "php", "vala"], &ft) != -1
-endfun
 
-fun! <SID>IsCommentStart(line)
-    " &comments aren't reliable
-    return <SID>HasCStyleComments() && a:line =~ '/\*'
-endfun
 
-fun! <SID>IsCommentEnd(line)
-    return <SID>HasCStyleComments() && a:line =~ '\*/'
-endfun
+let s:comment_marker_none = 0
+let s:comment_marker_start = 1
+let s:comment_marker_end = 2
+let s:comment_marker_line = 3
+function! s:BuildEmptyMarkerDict()
+    let dict = { 'has_block': 0, 'has_line': 0 }
+    function! dict.get_matching_marker(line) dict abort
+        if self.has_line && stridx(a:line, self.line) > -1
+            return s:comment_marker_line
+        elseif self.has_block
+            let has_start = stridx(a:line, self.start) > -1
+            let has_end   = stridx(a:line, self.end) > -1
+            if has_start && has_end
+                return s:comment_marker_line
+            elseif has_start
+                return s:comment_marker_start
+            elseif has_end
+                return s:comment_marker_end
+            endif
+        end
+        return s:comment_marker_none
+    endf
+
+    function! dict.IsCommentStart(line) dict abort
+        return self.get_matching_marker(a:line) == s:comment_marker_start
+    endf
+    function! dict.IsCommentEnd(line) dict abort
+        return self.get_matching_marker(a:line) == s:comment_marker_end
+    endf
+    function! dict.IsCommentLine(line) dict abort
+        return self.get_matching_marker(a:line) == s:comment_marker_line
+    endf
+    return dict
+endf
+
+function! s:GetCommentMarkers()
+    if !exists("b:detectindent_comment_markers")
+        let b:detectindent_comment_markers = s:BuildEmptyMarkerDict()
+        let is_blacklisted = index(g:detectindent_comments_blacklist, &filetype) >= 0
+        if !is_blacklisted
+            " &commentstring is usually single-line comments, so we need to look
+            " at &comments which looks like this:
+            " s:--[[,m: ,e:]],:--
+            let dict = {}
+            for part in split(&comments, ',')
+                let flag_to_str = split(part, ':')
+                let num_elements = len(flag_to_str)
+                if num_elements == 2
+                    " Two-part are sometimes beginning and end.
+                    " ignore parts[1] -- the number of characters to indent
+                    let parts = split(flag_to_str[0], '\zs')
+                    let dict[parts[0]] = flag_to_str[1]
+                elseif num_elements == 1
+                    " One part are always single-line comments.
+                    let dict['line'] = flag_to_str[0]
+                endif
+            endfor
+
+            let comment_start = get(dict, 's', '')
+            if len(comment_start) > 0
+                " Start and end should always exist together.
+                let b:detectindent_comment_markers.start = comment_start
+                let b:detectindent_comment_markers.end = dict.e
+                let b:detectindent_comment_markers.has_block = 1
+            endif
+
+            let line = get(dict, 'line', '')
+            if len(line) > 0
+                let b:detectindent_comment_markers.line = line
+                let b:detectindent_comment_markers.has_line = 1
+            endif
+        endif
+    endif
+    return b:detectindent_comment_markers
+endf
+
+" For easy testing of problematic lines.
+"~ function! Debug_GetCommentMarkers(line)
+"~     let markers = s:GetCommentMarkers()
+"~     return markers.get_matching_marker(a:line)
+"~ endf
 
 fun! s:HasCommentSyntax(line_number, line_text) " {{{1
     " Some languages (lua) don't define space before a comment as part of the
@@ -59,10 +132,6 @@ fun! s:HasCommentSyntax(line_number, line_text) " {{{1
     let id = synID(a:line_number, len(nonblank_col), transparent)
     let syntax = synIDattr(id, 'name')
     return syntax =~? 'string\|comment'
-endfun
-
-fun! <SID>IsCommentLine(line)
-    return <SID>HasCStyleComments() && a:line =~ '^\s\+//'
 endfun
 
 fun! s:GetValue(option)
@@ -115,7 +184,11 @@ fun! <SID>DetectIndent()
     endif
     
     let can_check_syntax = s:GetValue('detectindent_check_comment_syntax')
+    let markers = s:GetCommentMarkers()
 
+    " There's lots of junk at the start of files that would be nice to skip,
+    " but we need to start from the top to ensure we know if we're in a
+    " comment block.
     let l:idx_end = line("$")
     let l:idx = 1
     while l:idx <= l:idx_end
@@ -123,8 +196,8 @@ fun! <SID>DetectIndent()
 
         " try to skip over comment blocks, they can give really screwy indent
         " settings in c/c++ files especially
-        if <SID>IsCommentStart(l:line)
-            while l:idx <= l:idx_end && ! <SID>IsCommentEnd(l:line)
+        if markers.IsCommentStart(l:line)
+            while l:idx <= l:idx_end && markers.IsCommentEnd(l:line)
                 let l:idx = l:idx + 1
                 let l:line = getline(l:idx)
             endwhile
@@ -133,7 +206,7 @@ fun! <SID>DetectIndent()
         endif
 
         " Skip comment lines since they are not dependable.
-        if <SID>IsCommentLine(l:line) || (can_check_syntax && s:HasCommentSyntax(l:idx, l:line))
+        if markers.IsCommentLine(l:line) || (can_check_syntax && s:HasCommentSyntax(l:idx, l:line))
             let l:idx = l:idx + 1
             continue
         endif
