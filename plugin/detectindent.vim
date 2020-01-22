@@ -20,6 +20,9 @@
 "                " To use preferred values instead of guessing:
 "                :let g:detectindent_preferred_when_mixed = 1
 "
+"                " To reduce the number of lines inspected:
+"                :let g:detectindent_max_lines_to_analyse = 100
+"
 " Requirements:  Untested on Vim versions below 6.2
 
 if exists("loaded_detectindent")
@@ -31,21 +34,104 @@ if !exists('g:detectindent_verbosity')
     let g:detectindent_verbosity = 1
 endif
 
-fun! <SID>HasCStyleComments()
-    return index(["c", "cpp", "java", "javascript", "php", "vala"], &ft) != -1
-endfun
+" Ignore comment lines via syntax (slow but accurate):
+let g:detectindent_check_comment_syntax = get(g:, 'detectindent_check_comment_syntax', 0)
 
-fun! <SID>IsCommentStart(line)
-    " &comments aren't reliable
-    return <SID>HasCStyleComments() && a:line =~ '/\*'
-endfun
+" Ignore 'comments' when detecting comment blocks.
+let g:detectindent_comments_blacklist = get(g:, 'detectindent_comments_blacklist', [])
 
-fun! <SID>IsCommentEnd(line)
-    return <SID>HasCStyleComments() && a:line =~ '\*/'
-endfun
 
-fun! <SID>IsCommentLine(line)
-    return <SID>HasCStyleComments() && a:line =~ '^\s\+//'
+
+let s:comment_marker_none = 0
+let s:comment_marker_start = 1
+let s:comment_marker_end = 2
+let s:comment_marker_line = 3
+function! s:BuildEmptyMarkerDict()
+    let dict = { 'has_block': 0, 'has_line': 0 }
+    function! dict.get_matching_marker(line) dict abort
+        if self.has_line && stridx(a:line, self.line) > -1
+            return s:comment_marker_line
+        elseif self.has_block
+            let has_start = stridx(a:line, self.start) > -1
+            let has_end   = stridx(a:line, self.end) > -1
+            if has_start && has_end
+                return s:comment_marker_line
+            elseif has_start
+                return s:comment_marker_start
+            elseif has_end
+                return s:comment_marker_end
+            endif
+        end
+        return s:comment_marker_none
+    endf
+
+    function! dict.IsCommentStart(line) dict abort
+        return self.get_matching_marker(a:line) == s:comment_marker_start
+    endf
+    function! dict.IsCommentEnd(line) dict abort
+        return self.get_matching_marker(a:line) == s:comment_marker_end
+    endf
+    function! dict.IsCommentLine(line) dict abort
+        return self.get_matching_marker(a:line) == s:comment_marker_line
+    endf
+    return dict
+endf
+
+function! s:GetCommentMarkers()
+    if !exists("b:detectindent_comment_markers")
+        let b:detectindent_comment_markers = s:BuildEmptyMarkerDict()
+        let is_blacklisted = index(g:detectindent_comments_blacklist, &filetype) >= 0
+        if !is_blacklisted
+            " &commentstring is usually single-line comments, so we need to look
+            " at &comments which looks like this:
+            " s:--[[,m: ,e:]],:--
+            let dict = {}
+            for part in split(&comments, ',')
+                let flag_to_str = split(part, ':')
+                let num_elements = len(flag_to_str)
+                if num_elements == 2
+                    " Two-part are sometimes beginning and end.
+                    " ignore parts[1] -- the number of characters to indent
+                    let parts = split(flag_to_str[0], '\zs')
+                    let dict[parts[0]] = flag_to_str[1]
+                elseif num_elements == 1
+                    " One part are always single-line comments.
+                    let dict['line'] = flag_to_str[0]
+                endif
+            endfor
+
+            let comment_start = get(dict, 's', '')
+            if len(comment_start) > 0
+                " Start and end should always exist together.
+                let b:detectindent_comment_markers.start = comment_start
+                let b:detectindent_comment_markers.end = dict.e
+                let b:detectindent_comment_markers.has_block = 1
+            endif
+
+            let line = get(dict, 'line', '')
+            if len(line) > 0
+                let b:detectindent_comment_markers.line = line
+                let b:detectindent_comment_markers.has_line = 1
+            endif
+        endif
+    endif
+    return b:detectindent_comment_markers
+endf
+
+" For easy testing of problematic lines.
+"~ function! Debug_GetCommentMarkers(line)
+"~     let markers = s:GetCommentMarkers()
+"~     return markers.get_matching_marker(a:line)
+"~ endf
+
+fun! s:HasCommentSyntax(line_number, line_text) " {{{1
+    " Some languages (lua) don't define space before a comment as part of the
+    " comment so look at the first nonblank character.
+    let nonblank_col = substitute(a:line_text, "^\s*\zs.*", "", "")
+    let transparent = 1
+    let id = synID(a:line_number, len(nonblank_col), transparent)
+    let syntax = synIDattr(id, 'name')
+    return syntax =~? 'string\|comment'
 endfun
 
 fun! s:GetValue(option)
@@ -53,6 +139,30 @@ fun! s:GetValue(option)
         return get(b:, a:option)
     else
         return get(g:, a:option)
+    endif
+endfun
+
+fun! s:SetIndent(expandtab, desired_tabstop)
+    let &l:expandtab = a:expandtab
+
+    " Only modify tabs if we have a valid value.
+    if a:desired_tabstop > 0
+        " See `:help 'tabstop'`. We generally adhere to #1 or #4, but when
+        " guessing what to do for mixed tabs and spaces we use #2.
+
+        let &l:tabstop = a:desired_tabstop
+        " NOTE: shiftwidth=0 keeps it in sync with tabstop, but that breaks
+        " many indentation plugins that read 'sw' instead of calling the new
+        " shiftwidth(). See
+        " https://github.com/tpope/vim-sleuth/issues/25
+        let &l:shiftwidth = a:desired_tabstop
+
+        if v:version >= 704
+            " Negative value automatically keeps in sync with shiftwidth in Vim 7.4+.
+            setl softtabstop=-1
+        else
+            let &l:softtabstop = a:desired_tabstop
+        endif
     endif
 endfun
 
@@ -72,7 +182,13 @@ fun! <SID>DetectIndent()
       " remember initial values for comparison
       let b:detectindent_cursettings = {'expandtab': &et, 'shiftwidth': &sw, 'tabstop': &ts, 'softtabstop': &sts}
     endif
+    
+    let can_check_syntax = s:GetValue('detectindent_check_comment_syntax')
+    let markers = s:GetCommentMarkers()
 
+    " There's lots of junk at the start of files that would be nice to skip,
+    " but we need to start from the top to ensure we know if we're in a
+    " comment block.
     let l:idx_end = line("$")
     let l:idx = 1
     while l:idx <= l:idx_end
@@ -80,8 +196,8 @@ fun! <SID>DetectIndent()
 
         " try to skip over comment blocks, they can give really screwy indent
         " settings in c/c++ files especially
-        if <SID>IsCommentStart(l:line)
-            while l:idx <= l:idx_end && ! <SID>IsCommentEnd(l:line)
+        if markers.IsCommentStart(l:line)
+            while l:idx <= l:idx_end && markers.IsCommentEnd(l:line)
                 let l:idx = l:idx + 1
                 let l:line = getline(l:idx)
             endwhile
@@ -90,7 +206,7 @@ fun! <SID>DetectIndent()
         endif
 
         " Skip comment lines since they are not dependable.
-        if <SID>IsCommentLine(l:line)
+        if markers.IsCommentLine(l:line) || (can_check_syntax && s:HasCommentSyntax(l:idx, l:line))
             let l:idx = l:idx + 1
             continue
         endif
@@ -138,24 +254,23 @@ fun! <SID>DetectIndent()
     if l:has_leading_tabs && ! l:has_leading_spaces
         " tabs only, no spaces
         let l:verbose_msg = "Detected tabs only and no spaces"
-        setl noexpandtab
-        if s:GetValue("detectindent_preferred_indent")
-            let &l:shiftwidth  = g:detectindent_preferred_indent
-            let &l:tabstop     = g:detectindent_preferred_indent
+        let indent = s:GetValue("detectindent_preferred_indent")
+        if indent == 0
+            " Default behavior is to retain current tabstop. Still need to set
+            " it to ensure softtabstop, shiftwidth, tabstop are in sync.
+            let indent = &l:tabstop
         endif
+        call s:SetIndent(0, indent)
 
     elseif l:has_leading_spaces && ! l:has_leading_tabs
         " spaces only, no tabs
         let l:verbose_msg = "Detected spaces only and no tabs"
-        setl expandtab
-        let &l:shiftwidth  = l:shortest_leading_spaces_run
-        let &l:softtabstop = l:shortest_leading_spaces_run
+        call s:SetIndent(1, l:shortest_leading_spaces_run)
 
     elseif l:has_leading_spaces && l:has_leading_tabs && ! s:GetValue("detectindent_preferred_when_mixed")
         " spaces and tabs
         let l:verbose_msg = "Detected spaces and tabs"
-        setl noexpandtab
-        let &l:shiftwidth = l:shortest_leading_spaces_run
+        call s:SetIndent(1, l:shortest_leading_spaces_run)
 
         " mmmm, time to guess how big tabs are
         if l:longest_leading_spaces_run <= 2
@@ -169,20 +284,7 @@ fun! <SID>DetectIndent()
     else
         " no spaces, no tabs
         let l:verbose_msg = s:GetValue("detectindent_preferred_when_mixed") ? "preferred_when_mixed is active" : "Detected no spaces and no tabs"
-        if s:GetValue("detectindent_preferred_indent") &&
-                    \ (s:GetValue("detectindent_preferred_expandtab"))
-            setl expandtab
-            let &l:shiftwidth  = g:detectindent_preferred_indent
-            let &l:softtabstop = g:detectindent_preferred_indent
-        elseif s:GetValue("detectindent_preferred_indent")
-            setl noexpandtab
-            let &l:shiftwidth  = g:detectindent_preferred_indent
-            let &l:tabstop     = g:detectindent_preferred_indent
-        elseif s:GetValue("detectindent_preferred_expandtab")
-            setl expandtab
-        else
-            setl noexpandtab
-        endif
+        call s:SetIndent(s:GetValue("detectindent_preferred_expandtab"), s:GetValue("detectindent_preferred_indent"))
 
     endif
 
