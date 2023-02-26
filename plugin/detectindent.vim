@@ -32,7 +32,7 @@ if !exists('g:detectindent_verbosity')
 endif
 
 fun! <SID>HasCStyleComments()
-    return index(["c", "cpp", "java", "javascript", "php", "vala"], &ft) != -1
+    return index(["c", "cpp", "java", "javascript", "php", "typescript", "typescriptreact", "vala"], &ft) != -1
 endfun
 
 fun! <SID>IsCommentStart(line)
